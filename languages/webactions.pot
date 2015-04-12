@@ -1,0 +1,66 @@
+# Copyright (C) 2015 
+# This file is distributed under the same license as the  package.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: http://wordpress.org/support/plugin/indie-webactions\n"
+"POT-Creation-Date: 2015-04-12 15:18:35+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2015-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"X-Generator: grunt-wp-i18n 0.4.9\n"
+
+#: indie-webactions.php:38
+msgid "Invalid Action"
+msgstr ""
+
+#: indie-webactions.php:44
+msgid "User Does Not Have Permission to Publish"
+msgstr ""
+
+#: indie-webactions.php:55
+msgid "The URL is Invalid"
+msgstr ""
+
+#: indie-webactions.php:115 indie-webactions.php:118
+msgid "Quick Post"
+msgstr ""
+
+#: indie-webactions.php:123
+msgid "URL:"
+msgstr ""
+
+#: indie-webactions.php:126
+msgid "Name:"
+msgstr ""
+
+#: indie-webactions.php:130
+msgid "Author Name:"
+msgstr ""
+
+#: indie-webactions.php:134
+msgid "Publisher:"
+msgstr ""
+
+#: indie-webactions.php:138
+msgid "Tags(Comma separated):"
+msgstr ""
+
+#: indie-webactions.php:142
+msgid "Content/Excerpt:"
+msgstr ""
+
+#: indie-webactions.php:188 indie-webactions.php:190
+msgid "Error: %s"
+msgstr ""
+
+#: indie-webactions.php:188
+msgid "Could not download the source URL (native error: %s)."
+msgstr ""
+
+#: indie-webactions.php:190
+msgid "Could not save or locate the temporary download file for the source URL."
+msgstr ""
