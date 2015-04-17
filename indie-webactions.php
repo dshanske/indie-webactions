@@ -19,7 +19,6 @@ register_activation_hook(__FILE__, 'indie_webactions_activation');
 
 // Autoload
 require_once( plugin_dir_path( __FILE__ ) . 'vendor/autoload.php');
-use Mf2;
 
 add_action('init', array('Web_Actions', 'init'), 12);
 
@@ -74,6 +73,12 @@ class Web_Actions {
     $vars[] = 'indie-action';
     return $vars;
   }
+  public static function kind_actions() {
+    return array('like', 'favorite', 'bookmark', 'repost', 'note');
+  }
+ public static function unkind_actions() {
+    return array('bookmark', 'note');
+  }
 
   public static function parse_query($wp) {
     $data = array_merge_recursive( $_POST, $_GET );
@@ -93,10 +98,10 @@ class Web_Actions {
     }
     $action = $wp->query_vars['indie-action'];
     if ( taxonomy_exists('kind') ) {
-      $actions = array('like', 'favorite', 'bookmark', 'repost');
+      $actions = Web_Actions::kind_actions();
     }
     else {
-      $actions = array('bookmark');
+      $actions = Web_Actions::unkind_actions();
     }
     if (!in_array($action, $actions)) {
       header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
@@ -104,12 +109,13 @@ class Web_Actions {
       _e ('Invalid Action', 'Web Actions');
       exit;
     }
-    if (!isset($data['url']) || isset($data['fill']) ) {
-      header('Content-Type: text/html; charset=' . get_option('blog_charset'));
+    if ( !isset($data['url'])&&!isset($data['postform']) ) {
+      Web_Actions::form_header();
       Web_Actions::post_form($action);
+      Web_Actions::form_footer();
       exit;
     }
-    if (filter_var($data['url'], FILTER_VALIDATE_URL) === false) {
+    if ( isset($data['url']) && (filter_var($data['url'], FILTER_VALIDATE_URL) === false) ) {
       status_header(400);
       _e ('The URL is Invalid', 'Web Actions');
       exit;
@@ -127,14 +133,15 @@ class Web_Actions {
     if (isset($data['content']) ) {
       $args['post_content'] = wp_kses_post( trim($data['content']) );
     }
-    // tags will map to a category if exists, otherwise a tag
+    // Set categories if exists
     if (isset($data['tags'])) {
-      foreach ($data['tags'] as $mp_cat) {
-        $wp_cat = get_category_by_slug($mp_cat);
+      $tags = array_map('trim', explode(',', $data['tags']));
+      foreach ($tags as $cat) {
+        $wp_cat = get_category_by_slug($cat);
         if ($wp_cat) {
           $args['post_category'][] = $wp_cat->term_id;
         } else {
-          $args['tags_input'][] = $mp_cat;
+          $args['tags_input'][] = $cat;
         }
       }
     }
@@ -156,7 +163,7 @@ class Web_Actions {
       update_post_meta($post_id, 'geo_latitude', sanitize_text_field(trim($data['lat'])) );
       update_post_meta($post_id, 'geo_longitude', sanitize_text_field(trim($data['lon'])) );
     }
-    update_post_meta($post_id, 'mf2_cite', $cite); 
+    update_post_meta($post_id, 'mf2_cite', array_filter($cite)); 
     if( taxonomy_exists('kind') ) {
         wp_set_object_terms($post_id, $action, 'kind');
     }
@@ -180,41 +187,83 @@ class Web_Actions {
   public static function the_content($content) {
     return $content;
   }
-
-  public function post_form($kind) {
-    echo '<title>';
-    _e ('Quick Post', 'Web Actions');
-    echo '</title>';
-    echo '<h1>';
-    _e ('Quick Post', 'Web Actions');
-    echo ' - ' . $kind . '</h1>';
-    echo '<form action="'. site_url()  . '/?indie-action=' . $kind . '" method="post">';
-
-    echo '<p>';
-    _e ('URL:', 'Web Actions'); 
-    echo '<input type="url" name="url" size="70" /></p>';
-    echo '<p>';
-    _e('Name:', 'Web Actions');
-    echo '<input type="text" name="title" size="70" /></p>';
-
-    echo '<p>';
-    _e('Author Name:', 'Web Actions');
-    echo '<input type="text" name="author" size="70" /></p>';
-
-    echo '<p>';
-    _e('Publisher:', 'Web Actions');
-    echo '<input type="text" name="publisher" size="70" /></p>';
-
-    echo '<p>';
-    _e('Tags(Comma separated):', 'Web Actions');
-    echo '<input type="text" name="tags" size="70" /></p>';
-
-    echo '<p>';
-    _e('Content/Excerpt:', 'Web Actions');
-    echo '<textarea name="text" rows="3" cols="70" ></textarea></p>';
-
-    echo '<p><input type="submit" /></p>';
-    echo '</form>';
+  public function form_header() {
+    header('Content-Type: text/html; charset=' . get_option('blog_charset'));  
+    ?>
+      <!DOCTYPE html>
+      <html <?php language_attributes(); ?>>
+        <head>
+        <meta charset="<?php bloginfo( 'charset' ); ?>">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="profile" href="http://gmpg.org/xfn/11">
+        <link rel="profile" href="http://microformats.org/profile/specs" />
+        <link rel="profile" href="http://microformats.org/profile/hatom" />
+        <title><?php echo get_bloginfo('name'); ?>  - <?php _e ('Quick Post', 'Web Actions'); ?></title>
+        </head>
+        <body>
+        <header> 
+           <h3><a href="<?php echo site_url(); ?>"><?php echo get_bloginfo('name');?></a>
+           <a href="<?php echo admin_url(); ?>">(<?php _e('Dashboard', 'Web Actions'); ?>)</a></h3>
+           <hr />
+           <h1> <?php _e ('Quick Post', 'Web Actions'); ?></h1>
+        </header>
+      <?php
+  }
+  public static function form_footer() {
+    ?>
+      </body>
+      </html>
+    <?php
+  }
+  public static function post_form($action) {
+    ?>
+      <form action="<?php echo site_url();?>/?indie-action=<?php echo $action;?>" method="post">
+      <?php
+        switch ($action) {
+          case 'note':
+            ?>
+                <p>
+                <textarea name="content" rows="3" cols="50" ></textarea>
+              </p>
+            <?php
+            break;
+          default:
+      ?>
+          <p>
+            <?php _e ('URL:', 'Web Actions'); ?>
+            <input type="url" name="url" size="70" />
+          </p>
+          <p>
+            <?php _e('Name:', 'Web Actions'); ?>
+            <input type="text" name="title" size="70" />
+          </p>
+          <p>
+            <?php _e('Author Name:', 'Web Actions'); ?>
+            <input type="text" name="author" size="35" />
+          </p>
+          <p>
+            <?php _e('Publisher:', 'Web Actions'); ?>
+            <input type="text" name="publisher" size="35" />
+          </p>
+          <p>
+           <?php _e('Content/Excerpt:', 'Web Actions'); ?>
+           <textarea name="text" rows="3" cols="50" ></textarea>
+         </p>
+     <?php }
+    ?>
+          <p>
+            <?php _e('Tags(Comma separated):', 'Web Actions'); ?>
+            <input type="text" name="tags" size="35" />
+          </p>
+          <p>
+            <?php _e('Public Post:', 'Web Actions'); ?>
+            <input type="checkbox" name="public" />
+          </p>
+         <input type="hidden" name="postform" value="1" />
+         <p><input type="submit" />
+         </p>
+      </form>
+    <?php
   }
 
 }
