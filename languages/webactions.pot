@@ -1,10 +1,10 @@
-# Copyright (C) 2015 
-# This file is distributed under the same license as the  package.
+# Copyright (C) 2015 David Shanske
+# This file is distributed under the same license as the Indie WebActions package.
 msgid ""
 msgstr ""
-"Project-Id-Version: \n"
+"Project-Id-Version: Indie WebActions 0.1.0\n"
 "Report-Msgid-Bugs-To: http://wordpress.org/support/plugin/indie-webactions\n"
-"POT-Creation-Date: 2015-04-12 15:18:35+00:00\n"
+"POT-Creation-Date: 2015-04-17 00:35:33+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -13,54 +13,62 @@ msgstr ""
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "X-Generator: grunt-wp-i18n 0.4.9\n"
 
-#: indie-webactions.php:38
-msgid "Invalid Action"
-msgstr ""
-
-#: indie-webactions.php:44
+#: indie-webactions.php:91
 msgid "User Does Not Have Permission to Publish"
 msgstr ""
 
-#: indie-webactions.php:55
+#: indie-webactions.php:104
+msgid "Invalid Action"
+msgstr ""
+
+#: indie-webactions.php:114
 msgid "The URL is Invalid"
 msgstr ""
 
-#: indie-webactions.php:115 indie-webactions.php:118
+#: indie-webactions.php:186 indie-webactions.php:189
 msgid "Quick Post"
 msgstr ""
 
-#: indie-webactions.php:123
+#: indie-webactions.php:194
 msgid "URL:"
 msgstr ""
 
-#: indie-webactions.php:126
+#: indie-webactions.php:197
 msgid "Name:"
 msgstr ""
 
-#: indie-webactions.php:130
+#: indie-webactions.php:201
 msgid "Author Name:"
 msgstr ""
 
-#: indie-webactions.php:134
+#: indie-webactions.php:205
 msgid "Publisher:"
 msgstr ""
 
-#: indie-webactions.php:138
+#: indie-webactions.php:209
 msgid "Tags(Comma separated):"
 msgstr ""
 
-#: indie-webactions.php:142
+#: indie-webactions.php:213
 msgid "Content/Excerpt:"
 msgstr ""
 
-#: indie-webactions.php:188 indie-webactions.php:190
-msgid "Error: %s"
+#. Plugin Name of the plugin/theme
+msgid "Indie WebActions"
 msgstr ""
 
-#: indie-webactions.php:188
-msgid "Could not download the source URL (native error: %s)."
+#. Plugin URI of the plugin/theme
+msgid "https://github.com/dshanske/indie-webactions"
 msgstr ""
 
-#: indie-webactions.php:190
-msgid "Could not save or locate the temporary download file for the source URL."
+#. Description of the plugin/theme
+msgid "Web Actions Handler"
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "David Shanske"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "http://david.shanske.com"
 msgstr ""
