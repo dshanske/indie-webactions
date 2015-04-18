@@ -20,13 +20,18 @@ create posts. The posts are private by default.
 
 Example: http://example.com?indie-action=like&url=http%3A%2F%2Fexample2.com%2Ftest%2F&title=Example
 
-* indie-action - reply, bookmark, like, favorite
+* indie-action - such as bookmark, note, etc.
 * url - the URL of what you are responding to
 * title - the post title
 * text - An excerpt of the content (optional)
 * public - if you want the post public (optional)
 
-If you don't add a URL, it will display a form you can fill in.
+If you don't add a URL, it will display a form you can fill in. Otherwise, it endeavors to pull information on the site you are linking to if you do 
+not provide it.
+
+By default, it allows note and bookmark posts to be made. If you have the [Indieweb Post Kinds](https://wordpress.org/plugins/indieweb-post-kinds/) plugin enabled, it will also allow like, favorite, reply and repost.
+
+== Other Notes ==
 
 If you want to make this a bookmarklet to quickly save to your site, change to
 your site's address and create a bookmark with below.

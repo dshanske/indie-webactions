@@ -20,6 +20,10 @@ register_activation_hook(__FILE__, 'indie_webactions_activation');
 // Autoload
 require_once( plugin_dir_path( __FILE__ ) . 'vendor/autoload.php');
 
+// OpenGraph
+require_once( plugin_dir_path( __FILE__ ) . 'OpenGraph.php');
+
+
 add_action('init', array('Web_Actions', 'init'), 12);
 
 
@@ -111,7 +115,7 @@ class Web_Actions {
     }
     if ( !isset($data['url'])&&!isset($data['postform']) ) {
       Web_Actions::form_header();
-      Web_Actions::post_form($action);
+      Web_Actions::post_form($action, $data['test']);
       Web_Actions::form_footer();
       exit;
     }
@@ -145,6 +149,34 @@ class Web_Actions {
         }
       }
     }
+    if (isset($data['test']) ) {
+      header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
+      status_header(200);
+      $response = wp_remote_get($data['url']);
+      $body = wp_remote_retrieve_body($response);
+      $graph = OpenGraph::parse($body);
+      var_dump($graph->keys());
+      var_dump($graph->schema);
+      foreach ($graph as $key => $value) {
+        echo "$key => $value";
+      }
+      $domain = parse_url($data['url'], PHP_URL_HOST);
+      switch ($domain) {
+          case 'www.twitter.com':
+            $mf = Mf2\Shim\parseTwitter($body, $data['url']);
+            break;
+          case 'www.facebook.com':
+            $mf = Mf2\Shim\parseFacebook($body, $data['url']);
+            break;
+          default:
+          $mf = Mf2\parse($body);
+      }
+     $hentry = BarnabyWalters\Mf2\findMicroformatsByType($mf, 'h-entry');
+      // print_r($mf);
+      print_r($hentry);
+      
+      exit;
+    }
     $args = apply_filters('pre_kind_action', $args);
     $post_id = wp_insert_post($args, true);  
     if (is_wp_error($post_id) ) {
@@ -163,7 +195,27 @@ class Web_Actions {
       update_post_meta($post_id, 'geo_latitude', sanitize_text_field(trim($data['lat'])) );
       update_post_meta($post_id, 'geo_longitude', sanitize_text_field(trim($data['lon'])) );
     }
-    update_post_meta($post_id, 'mf2_cite', array_filter($cite)); 
+    $cite = array_filter($cite);
+    $response = wp_remote_get($data['url']);
+    $body = wp_remote_retrieve_body($response);
+    $graph = OpenGraph::parse($body);
+//    $domain = parse_url($data['url'], PHP_URL_HOST);
+//    switch ($domain) {
+//      case 'www.twitter.com':
+//        $mf = Mf2\Shim\parseTwitter($body, $data['url']);
+//        break;
+//      case 'www.facebook.com':
+//        $mf = Mf2\Shim\parseFacebook($body, $data['url']);
+//        break;
+//      default:
+//        $mf = Mf2\parse($body);
+//    }
+
+    $cite[0]['name'] = $cite[0]['name'] ?: $graph->title;
+    $cite[0]['content'] = $cite[0]['content'] ?: $graph->description;
+    $cite[0]['publication'] = $cite[0]['publication'] ?: $graph->site_name;
+    $cite = array_filter($cite);
+    update_post_meta($post_id, 'mf2_cite', $cite); 
     if( taxonomy_exists('kind') ) {
         wp_set_object_terms($post_id, $action, 'kind');
     }
@@ -184,7 +236,12 @@ class Web_Actions {
     // wp_redirect(get_permalink($post_id));
     exit;
   }
-  public static function the_content($content) {
+  public static function the_content($content) { 
+    $cite = get_post_meta(get_the_ID(), 'mf2_cite', true); 
+    if($cite) {
+      $c = '<p>' . __('Bookmarked', 'Web Actions') . ' - ' . '<a href="' . $cite[0]['url'] . '">' . $cite[0]['name'] . '</a></p>';
+      $content = $c . $content;
+    }
     return $content;
   }
   public function form_header() {
@@ -215,7 +272,7 @@ class Web_Actions {
       </html>
     <?php
   }
-  public static function post_form($action) {
+  public static function post_form($action, $test=null) {
     ?>
       <form action="<?php echo site_url();?>/?indie-action=<?php echo $action;?>" method="post">
       <?php
@@ -260,6 +317,11 @@ class Web_Actions {
             <input type="checkbox" name="public" />
           </p>
          <input type="hidden" name="postform" value="1" />
+    <?php
+        if ($test!=null) {
+          echo '<input type="hidden" name="test" value="1" />';
+        }
+    ?>
          <p><input type="submit" />
          </p>
       </form>

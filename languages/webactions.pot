@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Indie WebActions 0.1.0\n"
 "Report-Msgid-Bugs-To: http://wordpress.org/support/plugin/indie-webactions\n"
-"POT-Creation-Date: 2015-04-17 00:35:33+00:00\n"
+"POT-Creation-Date: 2015-04-18 14:59:53+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -13,44 +13,56 @@ msgstr ""
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "X-Generator: grunt-wp-i18n 0.4.9\n"
 
-#: indie-webactions.php:91
+#: indie-webactions.php:100
 msgid "User Does Not Have Permission to Publish"
 msgstr ""
 
-#: indie-webactions.php:104
+#: indie-webactions.php:113
 msgid "Invalid Action"
 msgstr ""
 
-#: indie-webactions.php:114
+#: indie-webactions.php:124
 msgid "The URL is Invalid"
 msgstr ""
 
-#: indie-webactions.php:186 indie-webactions.php:189
+#: indie-webactions.php:242
+msgid "Bookmarked"
+msgstr ""
+
+#: indie-webactions.php:258 indie-webactions.php:265
 msgid "Quick Post"
 msgstr ""
 
-#: indie-webactions.php:194
+#: indie-webactions.php:263
+msgid "Dashboard"
+msgstr ""
+
+#: indie-webactions.php:290
 msgid "URL:"
 msgstr ""
 
-#: indie-webactions.php:197
+#: indie-webactions.php:294
 msgid "Name:"
 msgstr ""
 
-#: indie-webactions.php:201
+#: indie-webactions.php:298
 msgid "Author Name:"
 msgstr ""
 
-#: indie-webactions.php:205
+#: indie-webactions.php:302
 msgid "Publisher:"
 msgstr ""
 
-#: indie-webactions.php:209
+#: indie-webactions.php:306
+msgid "Content/Excerpt:"
+msgstr ""
+
+#: indie-webactions.php:312
 msgid "Tags(Comma separated):"
 msgstr ""
 
-#: indie-webactions.php:213
-msgid "Content/Excerpt:"
+#: indie-webactions.php:316
+msgid "Public Post:"
 msgstr ""
 
 #. Plugin Name of the plugin/theme

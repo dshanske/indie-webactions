@@ -7,4 +7,9 @@ $baseDir = dirname($vendorDir);
 
 return array(
     $vendorDir . '/mf2/mf2/Mf2/Parser.php',
+    $vendorDir . '/mf2/shim/Mf2/functions.php',
+    $vendorDir . '/mf2/shim/Mf2/Shim/Twitter.php',
+    $vendorDir . '/mf2/shim/Mf2/Shim/Instagram.php',
+    $vendorDir . '/mf2/shim/Mf2/Shim/Facebook.php',
+    $vendorDir . '/barnabywalters/mf-cleaner/src/BarnabyWalters/Mf2/Functions.php',
 );
