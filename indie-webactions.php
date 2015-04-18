@@ -78,7 +78,7 @@ class Web_Actions {
     return $vars;
   }
   public static function kind_actions() {
-    return array('like', 'favorite', 'bookmark', 'repost', 'note');
+    return array('like', 'favorite', 'bookmark', 'repost', 'note', 'reply');
   }
  public static function unkind_actions() {
     return array('bookmark', 'note');
@@ -284,6 +284,12 @@ class Web_Actions {
               </p>
             <?php
             break;
+          case 'reply':
+          ?>
+                <p> <?php _e ('Reply:' , 'Web Actions'); ?>
+                <textarea name="content" rows="3" cols="50" ></textarea>
+              </p>
+          <?php
           default:
       ?>
           <p>
