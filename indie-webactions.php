@@ -33,11 +33,15 @@ class Web_Actions {
    * Initialize the plugin.
    */
   public static function init() {
-    add_filter('comment_reply_link', array('Web_Actions', 'comment_reply_link'), null, 4);
-    add_action('comment_form_before', array('Web_Actions', 'comment_form_before'), 0);
-    add_action('comment_form_after', array('Web_Actions', 'after'), 0);
+    // Offer the option of this being handled by the theme
+    if(!current_theme_supports('web-actions')) {
+      add_filter('comment_reply_link', array('Web_Actions', 'comment_reply_link'), null, 4);
+      add_action('comment_form_before', array('Web_Actions', 'comment_form_before'), 0);
+      add_action('comment_form_after', array('Web_Actions', 'after'), 0);
+    }
     add_filter('query_vars', array('Web_Actions', 'query_var'));
     add_action('parse_query', array('Web_Actions', 'parse_query'));
+    // If Post Kinds isn't activated show a basic bookmark display
     if (!taxonomy_exists('kind') ) {
       add_filter('the_content', array('Web_Actions', 'the_content'));
     }
@@ -79,10 +83,12 @@ class Web_Actions {
     return $vars;
   }
   public static function kind_actions() {
-    return array('like', 'favorite', 'bookmark', 'repost', 'note', 'reply');
+    $actions = array('like', 'favorite', 'bookmark', 'repost', 'note', 'reply');
+    return apply_filters('supported_webactions', $actions);
   }
  public static function unkind_actions() {
-    return array('bookmark', 'note');
+    $actions = array('bookmark', 'note');
+    return apply_filters('supported_webactions', $actions);
   }
 
   public static function parse_query($wp) {
@@ -111,7 +117,7 @@ class Web_Actions {
     if (!in_array($action, $actions)) {
       header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
       status_header(400);
-      _e ('Invalid Action', 'Web Actions');
+      _e ('Unsupported or Disabled Action', 'Web Actions');
       exit;
     }
     if ( !isset($data['url'])&&!isset($data['postform']) ) {
@@ -153,29 +159,8 @@ class Web_Actions {
     if (isset($data['test']) ) {
       header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
       status_header(200);
-      $response = wp_remote_get($data['url']);
-      $body = wp_remote_retrieve_body($response);
-      $graph = OpenGraph::parse($body);
-      var_dump($graph->keys());
-      var_dump($graph->schema);
-      foreach ($graph as $key => $value) {
-        echo "$key => $value";
-      }
-      $domain = parse_url($data['url'], PHP_URL_HOST);
-      switch ($domain) {
-          case 'www.twitter.com':
-            $mf = Mf2\Shim\parseTwitter($body, $data['url']);
-            break;
-          case 'www.facebook.com':
-            $mf = Mf2\Shim\parseFacebook($body, $data['url']);
-            break;
-          default:
-          $mf = Mf2\parse($body);
-      }
-     $hentry = BarnabyWalters\Mf2\findMicroformatsByType($mf, 'h-entry');
-      // print_r($mf);
-      print_r($hentry);
-      
+      $return = Web_Actions::parse($data['url']);
+      var_dump($return);
       exit;
     }
     $args = apply_filters('pre_kind_action', $args);
@@ -200,17 +185,6 @@ class Web_Actions {
     $response = wp_remote_get($data['url']);
     $body = wp_remote_retrieve_body($response);
     $graph = OpenGraph::parse($body);
-//    $domain = parse_url($data['url'], PHP_URL_HOST);
-//    switch ($domain) {
-//      case 'www.twitter.com':
-//        $mf = Mf2\Shim\parseTwitter($body, $data['url']);
-//        break;
-//      case 'www.facebook.com':
-//        $mf = Mf2\Shim\parseFacebook($body, $data['url']);
-//        break;
-//      default:
-//        $mf = Mf2\parse($body);
-//    }
 
     $cite[0]['name'] = $cite[0]['name'] ?: $graph->title;
     $cite[0]['content'] = $cite[0]['content'] ?: $graph->description;
@@ -237,6 +211,171 @@ class Web_Actions {
     // wp_redirect(get_permalink($post_id));
     exit;
   }
+  // Under Development
+  public static function parse($url) {
+    $response = wp_remote_get($url);
+    if (is_wp_error($response) ) {
+        return $response;
+    }
+    $data = array();
+    $body = wp_remote_retrieve_body($response);
+    $graph = OpenGraph::parse($body);
+    $domain = parse_url($url, PHP_URL_HOST);
+    switch ($domain) {
+      case 'www.twitter.com':
+        $mf = Mf2\Shim\parseTwitter($body, $url);
+        break;
+      case 'www.facebook.com':
+        $mf = Mf2\Shim\parseFacebook($body, $url);
+        break;
+      default:
+        $mf = Mf2\parse($body);
+    }
+    $data['name'] = $graph->title ?: $mf;
+    $data['content'] = $mf ?: $graph->description;
+    return $data;
+  }
+
+/**
+   * get all h-entry items
+   *
+   * @param array $mf_array the microformats array
+   * @param array the h-entry array
+   */
+  public static function get_entries($mf_array) {
+    $entries = array();
+
+    // some basic checks
+    if (!is_array($mf_array))
+      return $entries;
+    if (!isset($mf_array["items"]))
+      return $entries;
+    if (count($mf_array["items"]) == 0)
+      return $entries;
+
+    // get first item
+    $first_item = $mf_array["items"][0];
+
+    // check if it is an h-feed
+    if (isset($first_item['type']) && in_array("h-feed", $first_item["type"]) && isset($first_item['children'])) {
+      $mf_array["items"] = $first_item['children'];
+    }
+
+    // iterate array
+    foreach ($mf_array["items"] as $mf) {
+      if (isset($mf["type"]) && in_array("h-entry", $mf["type"])) {
+        $entries[] = $mf;
+      }
+    }
+
+    // return entries
+    return $entries;
+  }
+
+  /**
+   * helper to find the correct author node
+   *
+   * @param array $mf_array the parsed microformats array
+   * @param string $source the source url
+   * @return array|null the h-card node or null
+   */
+  public static function get_representative_author($mf_array, $source) {
+    foreach ($mf_array["items"] as $mf) {
+      if (isset($mf["type"])) {
+        if (in_array("h-card", $mf["type"])) {
+          // check domain
+          if (isset($mf['properties']) && isset($mf['properties']['url'])) {
+            foreach ($mf['properties']['url'] as $url) {
+              if (parse_url($url, PHP_URL_HOST) == parse_url($source, PHP_URL_HOST)) {
+                return $mf['properties'];
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * helper to find the correct h-entry node
+   *
+   * @param array $mf_array the parsed microformats array
+   * @param string $target the target url
+   * @return array the h-entry node or false
+   */
+  public static function get_representative_entry($entries, $target) {
+    // iterate array
+    foreach ($entries as $entry) {
+      // check properties
+      if (isset($entry['properties'])) {
+        // check properties if target urls was mentioned
+        foreach ($entry['properties'] as $key => $values) {
+          // check "normal" links
+          if (self::compare_urls($target, $values)) {
+            return $entry;
+          }
+
+          // check included h-* formats and their links
+          foreach ($values as $obj) {
+            // check if reply is a "cite"
+            if (isset($obj['type']) && array_intersect(array('h-cite', 'h-entry'), $obj['type'])) {
+              // check url
+              if (isset($obj['properties']) && isset($obj['properties']['url'])) {
+                // check target
+                if (self::compare_urls($target, $obj['properties']['url'])) {
+                  return $entry;
+                }
+              }
+            }
+          }
+        }
+
+        // check properties if target urls was mentioned
+        foreach ($entry['properties'] as $key => $values) {
+          // check content for the link
+          if ($key == "content" && preg_match_all("/<a[^>]+?".preg_quote($target, "/")."[^>]*>([^>]+?)<\/a>/i", $values[0]['html'], $context)) {
+            return $entry;
+          // check summary for the link
+          } elseif ($key == "summary" && preg_match_all("/<a[^>]+?".preg_quote($target, "/")."[^>]*>([^>]+?)<\/a>/i", $values[0], $context)) {
+            return $entry;
+          }
+        }
+      }
+    }
+
+    // return first h-entry
+    return $entries[0];
+  }
+
+  /**
+   * compare an url with a list of urls
+   *
+   * @param string $needle the target url
+   * @param array $haystack a list of urls
+   * @param boolean $schemelesse define if the target url should be checked
+   *        with http:// and https://
+   * @return boolean
+   */
+  public static function compare_urls($needle, $haystack, $schemeless = true) {
+    if ($schemeless === true) {
+      // remove url-scheme
+      $schemeless_target = preg_replace("/^https?:\/\//i", "", $needle);
+
+      // add both urls to the needle
+      $needle = array("http://".$schemeless_target, "https://".$schemeless_target);
+    } else {
+      // make $needle an array
+      $needle = array($needle);
+    }
+
+    // compare both arrays
+    return array_intersect($needle, $haystack);
+  }
+
+
   public static function the_content($content) { 
     $cite = get_post_meta(get_the_ID(), 'mf2_cite', true); 
     if($cite) {
@@ -256,8 +395,11 @@ class Web_Actions {
         <link rel="profile" href="http://gmpg.org/xfn/11">
         <link rel="profile" href="http://microformats.org/profile/specs" />
         <link rel="profile" href="http://microformats.org/profile/hatom" />
-        <title><?php echo get_bloginfo('name'); ?>  - <?php _e ('Quick Post', 'Web Actions'); ?></title>
-        </head>
+        <link rel='stylesheet' id='indie-webaction-css'  href='<?php echo plugin_dir_url( __FILE__ ) . 'css/webaction.css'; ?>' type='text/css' media='all' />
+
+        <?php do_action('indie_webaction_form_head'); ?> 
+        <title><?php echo get_bloginfo('name'); ?>  - <?php _e ('Quick Post', 'Web Actions'); ?></title> 
+       </head>
         <body>
         <header> 
            <h3><a href="<?php echo site_url(); ?>"><?php echo get_bloginfo('name');?></a>
@@ -328,6 +470,7 @@ class Web_Actions {
         if ($test!=null) {
           echo '<input type="hidden" name="test" value="1" />';
         }
+        do_action('indie_webaction_form_fields');  
     ?>
          <p><input type="submit" />
          </p>
