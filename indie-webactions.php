@@ -17,9 +17,10 @@ function indie_webactions_activation() {
 
 register_activation_hook(__FILE__, 'indie_webactions_activation');
 
-// Autoload
+// Autoload MF2 unless already loaded
+if(!function_exists ("Mf2\parse")) {
 require_once( plugin_dir_path( __FILE__ ) . 'vendor/autoload.php');
-
+}
 // OpenGraph
 require_once( plugin_dir_path( __FILE__ ) . 'OpenGraph.php');
 
