@@ -22,8 +22,7 @@ if(!function_exists ("Mf2\parse")) {
 require_once( plugin_dir_path( __FILE__ ) . 'vendor/autoload.php');
 }
 // OpenGraph
-require_once( plugin_dir_path( __FILE__ ) . 'OpenGraph.php');
-
+require_once( plugin_dir_path( __FILE__ ) . 'Parser.php');
 
 add_action('init', array('Web_Actions', 'init'), 12);
 
@@ -182,13 +181,10 @@ class Web_Actions {
       update_post_meta($post_id, 'geo_longitude', sanitize_text_field(trim($data['lon'])) );
     }
     $cite = array_filter($cite);
-    $response = wp_remote_get($data['url']);
-    $body = wp_remote_retrieve_body($response);
-    $graph = OpenGraph::parse($body);
-
-    $cite[0]['name'] = $cite[0]['name'] ?: $graph->title;
-    $cite[0]['content'] = $cite[0]['content'] ?: $graph->description;
-    $cite[0]['publication'] = $cite[0]['publication'] ?: $graph->site_name;
+    $response = Web_Actions::parse($data['url']);
+    $cite[0]['name'] = $cite[0]['name'] ?: $response['title'];
+    $cite[0]['content'] = $cite[0]['content'] ?: $response['content'];
+    $cite[0]['publication'] = $cite[0]['publication'] ?: $response['site'];
     $cite = array_filter($cite);
     update_post_meta($post_id, 'mf2_cite', $cite); 
     if( taxonomy_exists('kind') ) {
@@ -219,7 +215,7 @@ class Web_Actions {
     }
     $data = array();
     $body = wp_remote_retrieve_body($response);
-    $graph = OpenGraph::parse($body);
+    $meta = \ogp\Parser::parse($body);
     $domain = parse_url($url, PHP_URL_HOST);
     switch ($domain) {
       case 'www.twitter.com':
@@ -231,9 +227,15 @@ class Web_Actions {
       default:
         $mf = Mf2\parse($body);
     }
-    $data['name'] = $graph->title ?: $mf;
-    $data['content'] = $mf ?: $graph->description;
-    return $data;
+   $entry = Web_Actions::get_representative_entry(Web_Actions::get_entries($mf), $url);
+    $data['name'] = $entry['properties']['name'][0] ?: $meta['og:title'] ?: $meta['twitter:title'];
+    $data['content'] = $meta['og:description'] ?: $meta['twitter:description'] ?: $entry['properties']['content'][0]['html'];
+    $data['author'] = $meta['article:author'] ?: Web_Actions::get_representative_author($mf, $url);
+    $data['site'] = $meta['og:site'] ?: $meta['twitter:site'];
+    $data['image'] = $meta['og:image'] ?: $meta['twitter:image'];
+    $data['entry'] = $entry;
+    $data['meta'] = $meta;
+    return array_filter($data);
   }
 
 /**
