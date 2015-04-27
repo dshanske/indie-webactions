@@ -17,10 +17,6 @@ function indie_webactions_activation() {
 
 register_activation_hook(__FILE__, 'indie_webactions_activation');
 
-// Autoload MF2 unless already loaded
-if(!function_exists ("Mf2\parse")) {
-require_once( plugin_dir_path( __FILE__ ) . 'vendor/autoload.php');
-}
 // OpenGraph
 require_once( plugin_dir_path( __FILE__ ) . 'Parser.php');
 
@@ -155,6 +151,8 @@ class Web_Actions {
         }
       }
     }
+    $response = Web_Actions::parse($data['url']);
+    $args['post_title'] =  $response['name'] ?: current_time('Gis');
     if (isset($data['test']) ) {
       header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
       status_header(200);
@@ -172,18 +170,12 @@ class Web_Actions {
     $cite = array();
     $cite[0] = array();
     $cite[0]['url'] = esc_url($data['url']);
-    $cite[0]['name'] = sanitize_text_field( trim($data['title']) );
-    if (isset($data['text']) ) {
-      $cite[0]['content'] = wp_kses_post( trim($data['text']) );
-    }
+    $cite[0]['name'] = sanitize_text_field( trim($data['title']) ) ?: $response['name'];
+    $cite[0]['content'] = wp_kses_post( trim($data['text']) ) ?: $response['content'];
     if (isset($data['lat'])||isset($data['lon']) ) {
       update_post_meta($post_id, 'geo_latitude', sanitize_text_field(trim($data['lat'])) );
       update_post_meta($post_id, 'geo_longitude', sanitize_text_field(trim($data['lon'])) );
     }
-    $cite = array_filter($cite);
-    $response = Web_Actions::parse($data['url']);
-    $cite[0]['name'] = $cite[0]['name'] ?: $response['title'];
-    $cite[0]['content'] = $cite[0]['content'] ?: $response['content'];
     $cite[0]['publication'] = $cite[0]['publication'] ?: $response['site'];
     $cite = array_filter($cite);
     update_post_meta($post_id, 'mf2_cite', $cite); 
@@ -200,11 +192,8 @@ class Web_Actions {
         }
     }
     do_action('after_kind_action', $post_id);
-    // Return just the link to the new post
-    status_header (200);
-    echo get_permalink($post_id);
-    // Optionally instead redirect to the new post
-    // wp_redirect(get_permalink($post_id));
+    // redirect to the new post
+    wp_redirect(get_permalink($post_id));
     exit;
   }
   // Under Development
@@ -217,166 +206,15 @@ class Web_Actions {
     $body = wp_remote_retrieve_body($response);
     $meta = \ogp\Parser::parse($body);
     $domain = parse_url($url, PHP_URL_HOST);
-    switch ($domain) {
-      case 'www.twitter.com':
-        $mf = Mf2\Shim\parseTwitter($body, $url);
-        break;
-      case 'www.facebook.com':
-        $mf = Mf2\Shim\parseFacebook($body, $url);
-        break;
-      default:
-        $mf = Mf2\parse($body);
-    }
-   $entry = Web_Actions::get_representative_entry(Web_Actions::get_entries($mf), $url);
-    $data['name'] = $entry['properties']['name'][0] ?: $meta['og:title'] ?: $meta['twitter:title'];
-    $data['content'] = $meta['og:description'] ?: $meta['twitter:description'] ?: $entry['properties']['content'][0]['html'];
-    $data['author'] = $meta['article:author'] ?: Web_Actions::get_representative_author($mf, $url);
+    $data['name'] = $meta['og:title'] ?: $meta['twitter:title'];
+    $data['content'] = $meta['og:description'] ?: $meta['twitter:description'];
+    $data['author'] = $meta['article:author'];
     $data['site'] = $meta['og:site'] ?: $meta['twitter:site'];
     $data['image'] = $meta['og:image'] ?: $meta['twitter:image'];
     $data['entry'] = $entry;
     $data['meta'] = $meta;
     return array_filter($data);
   }
-
-/**
-   * get all h-entry items
-   *
-   * @param array $mf_array the microformats array
-   * @param array the h-entry array
-   */
-  public static function get_entries($mf_array) {
-    $entries = array();
-
-    // some basic checks
-    if (!is_array($mf_array))
-      return $entries;
-    if (!isset($mf_array["items"]))
-      return $entries;
-    if (count($mf_array["items"]) == 0)
-      return $entries;
-
-    // get first item
-    $first_item = $mf_array["items"][0];
-
-    // check if it is an h-feed
-    if (isset($first_item['type']) && in_array("h-feed", $first_item["type"]) && isset($first_item['children'])) {
-      $mf_array["items"] = $first_item['children'];
-    }
-
-    // iterate array
-    foreach ($mf_array["items"] as $mf) {
-      if (isset($mf["type"]) && in_array("h-entry", $mf["type"])) {
-        $entries[] = $mf;
-      }
-    }
-
-    // return entries
-    return $entries;
-  }
-
-  /**
-   * helper to find the correct author node
-   *
-   * @param array $mf_array the parsed microformats array
-   * @param string $source the source url
-   * @return array|null the h-card node or null
-   */
-  public static function get_representative_author($mf_array, $source) {
-    foreach ($mf_array["items"] as $mf) {
-      if (isset($mf["type"])) {
-        if (in_array("h-card", $mf["type"])) {
-          // check domain
-          if (isset($mf['properties']) && isset($mf['properties']['url'])) {
-            foreach ($mf['properties']['url'] as $url) {
-              if (parse_url($url, PHP_URL_HOST) == parse_url($source, PHP_URL_HOST)) {
-                return $mf['properties'];
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * helper to find the correct h-entry node
-   *
-   * @param array $mf_array the parsed microformats array
-   * @param string $target the target url
-   * @return array the h-entry node or false
-   */
-  public static function get_representative_entry($entries, $target) {
-    // iterate array
-    foreach ($entries as $entry) {
-      // check properties
-      if (isset($entry['properties'])) {
-        // check properties if target urls was mentioned
-        foreach ($entry['properties'] as $key => $values) {
-          // check "normal" links
-          if (self::compare_urls($target, $values)) {
-            return $entry;
-          }
-
-          // check included h-* formats and their links
-          foreach ($values as $obj) {
-            // check if reply is a "cite"
-            if (isset($obj['type']) && array_intersect(array('h-cite', 'h-entry'), $obj['type'])) {
-              // check url
-              if (isset($obj['properties']) && isset($obj['properties']['url'])) {
-                // check target
-                if (self::compare_urls($target, $obj['properties']['url'])) {
-                  return $entry;
-                }
-              }
-            }
-          }
-        }
-
-        // check properties if target urls was mentioned
-        foreach ($entry['properties'] as $key => $values) {
-          // check content for the link
-          if ($key == "content" && preg_match_all("/<a[^>]+?".preg_quote($target, "/")."[^>]*>([^>]+?)<\/a>/i", $values[0]['html'], $context)) {
-            return $entry;
-          // check summary for the link
-          } elseif ($key == "summary" && preg_match_all("/<a[^>]+?".preg_quote($target, "/")."[^>]*>([^>]+?)<\/a>/i", $values[0], $context)) {
-            return $entry;
-          }
-        }
-      }
-    }
-
-    // return first h-entry
-    return $entries[0];
-  }
-
-  /**
-   * compare an url with a list of urls
-   *
-   * @param string $needle the target url
-   * @param array $haystack a list of urls
-   * @param boolean $schemelesse define if the target url should be checked
-   *        with http:// and https://
-   * @return boolean
-   */
-  public static function compare_urls($needle, $haystack, $schemeless = true) {
-    if ($schemeless === true) {
-      // remove url-scheme
-      $schemeless_target = preg_replace("/^https?:\/\//i", "", $needle);
-
-      // add both urls to the needle
-      $needle = array("http://".$schemeless_target, "https://".$schemeless_target);
-    } else {
-      // make $needle an array
-      $needle = array($needle);
-    }
-
-    // compare both arrays
-    return array_intersect($needle, $haystack);
-  }
-
 
   public static function the_content($content) { 
     $cite = get_post_meta(get_the_ID(), 'mf2_cite', true); 
@@ -425,7 +263,7 @@ class Web_Actions {
           case 'note':
             ?>
                 <p>
-                <textarea name="content" rows="3" cols="50" ></textarea>
+                <textarea name="content" rows="3" cols="50" maxlength="140" ></textarea> 
               </p>
             <?php
             break;
@@ -450,7 +288,7 @@ class Web_Actions {
             <input type="text" name="author" size="35" />
           </p>
           <p>
-            <?php _e('Publisher:', 'Web Actions'); ?>
+            <?php _e('Site Name/Publication:', 'Web Actions'); ?>
             <input type="text" name="publisher" size="35" />
           </p>
           <p>

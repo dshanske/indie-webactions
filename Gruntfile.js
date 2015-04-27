@@ -11,6 +11,16 @@ module.exports = function(grunt) {
             },
         }
     },
+    sass: {                              // Task
+       dev: {                            // Target
+         options: {                       // Target options
+             style: 'expanded'
+             },
+          files: {                         // Dictionary of files
+        'css/webaction.css': 'sass/main.scss',       // 'destination': 'source'
+         }
+  }
+  },
  copy: {
            main: {
                options: {
