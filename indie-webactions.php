@@ -160,7 +160,7 @@ class Web_Actions {
       var_dump($return);
       exit;
     }
-    $args = apply_filters('pre_kind_action', $args);
+    $args = apply_filters('pre_web_action', $args);
     $post_id = wp_insert_post($args, true);  
     if (is_wp_error($post_id) ) {
         status_header(400);
@@ -191,7 +191,7 @@ class Web_Actions {
             set_post_format($post_id, 'aside');
         }
     }
-    do_action('after_kind_action', $post_id);
+    do_action('after_web_action', $post_id);
     // redirect to the new post
     wp_redirect(get_permalink($post_id));
     exit;
