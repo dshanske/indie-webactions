@@ -34,12 +34,18 @@ class Web_Actions {
       add_action('comment_form_before', array('Web_Actions', 'comment_form_before'), 0);
       add_action('comment_form_after', array('Web_Actions', 'after'), 0);
     }
+    add_action('wp_enqueue_scripts', array('Web_Actions', 'enqueue_scripts') );
     add_filter('query_vars', array('Web_Actions', 'query_var'));
     add_action('parse_query', array('Web_Actions', 'parse_query'));
     // If Post Kinds isn't activated show a basic bookmark display
     if (!taxonomy_exists('kind') ) {
       add_filter('the_content', array('Web_Actions', 'the_content'));
     }
+  }
+  
+  public static function enqueue_scripts() {
+    wp_enqueue_script( 'indieconfig', plugin_dir_url( __FILE__ ) . 'js/indieconfig.js', array(), '1.0.0', true );
+    wp_enqueue_script( 'webaction', plugin_dir_url( __FILE__ ) . 'js/webaction.js', array(), '1.0.0', true );
   }
 
   /**
@@ -78,11 +84,11 @@ class Web_Actions {
     return $vars;
   }
   public static function kind_actions() {
-    $actions = array('like', 'favorite', 'bookmark', 'repost', 'note', 'reply');
+    $actions = array('config', 'like', 'favorite', 'bookmark', 'repost', 'note', 'reply');
     return apply_filters('supported_webactions', $actions);
   }
  public static function unkind_actions() {
-    $actions = array('bookmark', 'note');
+    $actions = array('bookmark', 'note', 'config');
     return apply_filters('supported_webactions', $actions);
   }
 
@@ -113,6 +119,10 @@ class Web_Actions {
       header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
       status_header(400);
       _e ('Unsupported or Disabled Action', 'Web Actions');
+      exit;
+    }
+    if ($action=='config') {
+      Web_Actions::indie_config();
       exit;
     }
     if ( !isset($data['url'])&&!isset($data['postform']) ) {
@@ -254,6 +264,39 @@ class Web_Actions {
       </body>
       </html>
     <?php
+  }
+  public static function indie_config() {
+  ?>
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+
+<form id="confForm">
+  <input type="Submit" value="Register web+action handler"/>
+</form>
+    <script>
+      (function () {
+      if (window.parent !== window) {
+        window.parent.postMessage(JSON.stringify({
+        // The config of your endpoint
+        reply: '<?php echo site_url(); ?>?indie-action=reply&url={url}',
+        like: '<?php echo site_url(); ?>?indie-action=like&url={url}',
+        favorite: '<?php echo site_url(); ?>?indie-action=favorite&url={url}',
+        repost: '<?php echo site_url(); ?>?indie-action=repost&url={url}',
+     }), '*');
+    }
+  // Pick a way to invoke the registerProtocolHandler, through a submit handler in admin or something
+    document.getElementById('confForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      window.navigator.registerProtocolHandler('web+action', '/?indie-action=config&url=%s', 'Indie Config');
+    });
+      }());
+     </script>
+    </body>
+  </html>
+<?php
   }
   public static function post_form($action, $test=null) {
     ?>
