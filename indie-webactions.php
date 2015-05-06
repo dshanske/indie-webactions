@@ -3,7 +3,7 @@
  * Plugin Name: Indie WebActions
  * Plugin URI: https://github.com/dshanske/indie-webactions
  * Description: Web Actions Handler
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: David Shanske
  * Author URI: http://david.shanske.com
  * Text Domain: Web Actions
@@ -37,7 +37,7 @@ class Web_Actions {
     add_action('wp_enqueue_scripts', array('Web_Actions', 'enqueue_scripts') );
     add_filter('query_vars', array('Web_Actions', 'query_var'));
     add_action('parse_query', array('Web_Actions', 'parse_query'));
-    // If Post Kinds isn't activated show a basic bookmark display
+    // If Post Kinds isn't activated show a basic bookmark display for now
     if (!taxonomy_exists('kind') ) {
       add_filter('the_content', array('Web_Actions', 'the_content'));
     }
@@ -72,6 +72,16 @@ class Web_Actions {
     echo "<indie-action do='reply' with='$permalink'>";
   }
 
+  public static function isequals($key, $value=NULL) {
+    if (!isset($key)) { return false; }
+    if ($key==$value) { return true; }
+    return false;
+  }
+  public static function isreturn($key) {
+    if (isset($key)) { return $key; }
+    return "";
+  }
+
   /**
    * generic webaction "closer"
    */
@@ -84,11 +94,11 @@ class Web_Actions {
     return $vars;
   }
   public static function kind_actions() {
-    $actions = array('config', 'like', 'favorite', 'bookmark', 'repost', 'note', 'reply');
+    $actions = array('like', 'favorite', 'bookmark', 'repost', 'note', 'reply');
     return apply_filters('supported_webactions', $actions);
   }
  public static function unkind_actions() {
-    $actions = array('bookmark', 'note', 'config');
+    $actions = array('bookmark', 'note');
     return apply_filters('supported_webactions', $actions);
   }
 
@@ -115,19 +125,22 @@ class Web_Actions {
     else {
       $actions = Web_Actions::unkind_actions();
     }
+    if ($action=='config') {
+      Web_Actions::indie_config();
+      exit;
+    }
     if (!in_array($action, $actions)) {
       header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
       status_header(400);
       _e ('Unsupported or Disabled Action', 'Web Actions');
       exit;
     }
-    if ($action=='config') {
-      Web_Actions::indie_config();
-      exit;
-    }
-    if ( !isset($data['url'])&&!isset($data['postform']) ) {
+    if ( !isset($data['url']) || (self::isequals($data['submit'],'Preview') ) ) {
+      if (isset($data['url']) ) { 
+        $data = self::parse($data);
+      }
       Web_Actions::form_header();
-      Web_Actions::post_form($action, $data['test']);
+      Web_Actions::post_form($action, $data);
       Web_Actions::form_footer();
       exit;
     }
@@ -135,6 +148,9 @@ class Web_Actions {
       status_header(400);
       _e ('The URL is Invalid', 'Web Actions');
       exit;
+    }
+    if (!isset($data['html']) ) {
+      $data = self::parse(array_filter($data));
     }
     $args = array (
       'post_content' => ' ',
@@ -152,6 +168,7 @@ class Web_Actions {
     // Set categories if exists
     if (isset($data['tags'])) {
       $tags = array_map('trim', explode(',', $data['tags']));
+      $tags = apply_filters('webaction_tags', $tags, $action);
       foreach ($tags as $cat) {
         $wp_cat = get_category_by_slug($cat);
         if ($wp_cat) {
@@ -161,13 +178,12 @@ class Web_Actions {
         }
       }
     }
-    $response = Web_Actions::parse($data['url']);
-    $args['post_title'] =  $response['name'] ?: current_time('Gis');
-    if (isset($data['test']) ) {
+    $args['post_title'] =  $data['name'] ?: current_time('Gis');
+    if (self::isequals($data['submit'],'Test')) {
       header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
       status_header(200);
-      $return = Web_Actions::parse($data['url']);
-      var_dump($return);
+      unset($data['html']);
+      var_dump($data);
       exit;
     }
     $args = apply_filters('pre_web_action', $args);
@@ -180,13 +196,14 @@ class Web_Actions {
     $cite = array();
     $cite[0] = array();
     $cite[0]['url'] = esc_url($data['url']);
-    $cite[0]['name'] = sanitize_text_field( trim($data['title']) ) ?: $response['name'];
-    $cite[0]['content'] = wp_kses_post( trim($data['text']) ) ?: $response['content'];
+    $cite[0]['name'] = sanitize_text_field( trim($data['title']) ) ?: $data['name'];
+    $cite[0]['content'] = wp_kses_post( trim($data['excerpt']) ) ?: $data['content'];
+    $cite[0]['publication'] = $data['publication'];
     if (isset($data['lat'])||isset($data['lon']) ) {
       update_post_meta($post_id, 'geo_latitude', sanitize_text_field(trim($data['lat'])) );
       update_post_meta($post_id, 'geo_longitude', sanitize_text_field(trim($data['lon'])) );
     }
-    $cite[0]['publication'] = $cite[0]['publication'] ?: $response['site'];
+    $cite[0]['publication'] = $cite[0]['publication'] ?: $data['site'];
     $cite = array_filter($cite);
     update_post_meta($post_id, 'mf2_cite', $cite); 
     if( taxonomy_exists('kind') ) {
@@ -206,22 +223,33 @@ class Web_Actions {
     wp_redirect(get_permalink($post_id));
     exit;
   }
-  // Under Development
-  public static function parse($url) {
-    $response = wp_remote_get($url);
-    if (is_wp_error($response) ) {
+  // Extract Relevant Data from a Web Page
+  public static function parse($data) {
+    if(!isset($data['html']) ) {
+      $response = wp_remote_get($data['url']);
+      if (is_wp_error($response) ) {
         return $response;
+      }
+      $body = wp_remote_retrieve_body($response);
     }
-    $data = array();
-    $body = wp_remote_retrieve_body($response);
+    else {
+      $body = $data['html'];
+    }
     $meta = \ogp\Parser::parse($body);
     $domain = parse_url($url, PHP_URL_HOST);
-    $data['name'] = $meta['og:title'] ?: $meta['twitter:title'];
-    $data['content'] = $meta['og:description'] ?: $meta['twitter:description'];
-    $data['author'] = $meta['article:author'];
-    $data['site'] = $meta['og:site'] ?: $meta['twitter:site'];
-    $data['image'] = $meta['og:image'] ?: $meta['twitter:image'];
-    $data['entry'] = $entry;
+    $data['name'] = $data['name'] ?: $meta['og:title'] ?: $meta['twitter:title'];
+    $data['excerpt'] = $data['excerpt'] ?: $meta['og:description'] ?: $meta['twitter:description'];
+    $data['site'] = $data['site'] ?: $meta['og:site'] ?: $meta['twitter:site'];
+    $data['image'] = $data['image'] ?: $meta['og:image'] ?: $meta['twitter:image'];
+    $data['publication'] = $data['publication'] ?: $meta['og:site_name'];
+    if(is_array($meta['article:tag'])) {
+      foreach ($meta['article:tag'] as $tag) {
+        $tags[] = str_replace(',', ' -', $tag);
+      }
+      $tags = array_filter($tags);
+    }
+    $data['tags'] = $data['tags'] ?: implode("," ,$tags);
+    $data['html'] = $body;
     $data['meta'] = $meta;
     return array_filter($data);
   }
@@ -234,6 +262,7 @@ class Web_Actions {
     }
     return $content;
   }
+
   public function form_header() {
     header('Content-Type: text/html; charset=' . get_option('blog_charset'));  
     ?>
@@ -283,7 +312,6 @@ class Web_Actions {
         // The config of your endpoint
         reply: '<?php echo site_url(); ?>?indie-action=reply&url={url}',
         like: '<?php echo site_url(); ?>?indie-action=like&url={url}',
-        favorite: '<?php echo site_url(); ?>?indie-action=favorite&url={url}',
         repost: '<?php echo site_url(); ?>?indie-action=repost&url={url}',
      }), '*');
     }
@@ -298,51 +326,53 @@ class Web_Actions {
   </html>
 <?php
   }
-  public static function post_form($action, $test=null) {
+  public static function post_form($action, $data=null) {
+    self::preview($data);
     ?>
+    <div>
       <form action="<?php echo site_url();?>/?indie-action=<?php echo $action;?>" method="post">
       <?php
         switch ($action) {
           case 'note':
             ?>
                 <p>
-                <textarea name="content" rows="3" cols="50" maxlength="140" ></textarea> 
+                <textarea name="content" rows="3" cols="50" maxlength="140" ><?php echo self::isreturn($data['content']); ?></textarea> 
               </p>
             <?php
             break;
           case 'reply':
           ?>
                 <p> <?php _e ('Reply:' , 'Web Actions'); ?>
-                <textarea name="content" rows="3" cols="50" ></textarea>
+                <textarea name="content" rows="3" cols="50" ><?php echo self::isreturn($data['content']); ?></textarea>
               </p>
           <?php
           default:
       ?>
           <p>
             <?php _e ('URL:', 'Web Actions'); ?>
-            <input type="url" name="url" size="70" />
+            <input type="url" name="url" size="70" value="<?php echo self::isreturn($data['url']); ?>" />
           </p>
           <p>
             <?php _e('Name:', 'Web Actions'); ?>
-            <input type="text" name="title" size="70" />
+            <input type="text" name="name" size="70" value="<?php echo self::isreturn($data['name']); ?>" />
           </p>
           <p>
             <?php _e('Author Name:', 'Web Actions'); ?>
-            <input type="text" name="author" size="35" />
+            <input type="text" name="author" size="35" value="<?php echo self::isreturn($data['author']); ?>" />
           </p>
           <p>
             <?php _e('Site Name/Publication:', 'Web Actions'); ?>
-            <input type="text" name="publisher" size="35" />
+            <input type="text" name="publication" size="35" value="<?php echo self::isreturn($data['publication']); ?>" />
           </p>
           <p>
-           <?php _e('Content/Excerpt:', 'Web Actions'); ?>
-           <textarea name="text" rows="3" cols="50" ></textarea>
+           <?php _e('Excerpt:', 'Web Actions'); ?>
+           <textarea name="excerpt" rows="3" cols="50" ><?php echo self::isreturn($data['excerpt']); ?></textarea>
          </p>
      <?php }
     ?>
           <p>
             <?php _e('Tags(Comma separated):', 'Web Actions'); ?>
-            <input type="text" name="tags" size="35" />
+            <input type="text" name="tags" size="35" value="<?php echo self::isreturn($data['tags']); ?>" />
           </p>
           <p>
             <?php _e('Public Post:', 'Web Actions'); ?>
@@ -350,15 +380,26 @@ class Web_Actions {
           </p>
          <input type="hidden" name="postform" value="1" />
     <?php
-        if ($test!=null) {
+        if (isset($data['test'])) {
           echo '<input type="hidden" name="test" value="1" />';
         }
         do_action('indie_webaction_form_fields');  
     ?>
-         <p><input type="submit" />
+         <p><input type="submit" name="submit" value="Post" />
+            <input type="submit" name="submit" value="Preview" />
+            <input type="submit" name="submit" value="Test" />
          </p>
       </form>
+    </div>
     <?php
   }
+  function preview($data) {
+     if(!isset($data['submit'])) { return; }
+     echo '<div class="preview">';
+     if(isset($data['image'])&&isset($data['url'])) {
+        echo '<a href="' . $data['url'] . '" target="_blank"><img src="' . $data['image'] .  '" width="200" /></a>';
+     }
+    echo '</div>';
+ }
 
 }

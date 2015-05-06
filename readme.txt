@@ -40,4 +40,5 @@ javascript:location.href='http://example.com/?indie-action=like&url='+encodeURIC
 
 == Changelog == 
 
+* Version 0.2.0 - Supports Web Action handlers
 * Version 0.1.0 - Initial release

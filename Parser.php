@@ -34,7 +34,7 @@
 				 $doc = new DOMDocument();
 				 @$doc->loadHTML($content);
 				 
-				 $interested_in = array('og', 'fb', 'twitter'); // Open graph namespaces we're interested in (open graph + extensions)
+				 $interested_in = array('og', 'fb', 'twitter', 'article', 'music', 'video', 'book', 'profile'); // Open graph namespaces we're interested in (open graph + extensions)
 				 
 				 $ogp = array();
 				 
