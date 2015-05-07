@@ -1,13 +1,13 @@
 === Indie Webactions ===
 Contributors: dshanske
-Tags: indieweb, interaction, posts, webmention
-Stable tag: 0.1.0
-Requires at least: 4.0
-Tested up to: 4.1
+Tags: indieweb, interaction, posts, webactions
+Stable tag: trunk
+Requires at least: 4.2
+Tested up to: 4.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-A
+Adds a quick interface for simple notes, likes, and replies.
 
 == Description == 
 
@@ -22,8 +22,8 @@ Example: http://example.com?indie-action=like&url=http%3A%2F%2Fexample2.com%2Fte
 
 * indie-action - such as bookmark, note, etc.
 * url - the URL of what you are responding to
-* title - the post title
-* text - An excerpt of the content (optional)
+* name - the post title
+* excerpt - An excerpt of the content (optional)
 * public - if you want the post public (optional)
 
 If you don't add a URL, it will display a form you can fill in. Otherwise, it endeavors to pull information on the site you are linking to if you do 

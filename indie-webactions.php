@@ -71,12 +71,6 @@ class Web_Actions {
 
     echo "<indie-action do='reply' with='$permalink'>";
   }
-
-  public static function isequals($key, $value=NULL) {
-    if (!isset($key)) { return false; }
-    if ($key==$value) { return true; }
-    return false;
-  }
   public static function isreturn($key) {
     if (isset($key)) { return $key; }
     return "";
@@ -135,13 +129,20 @@ class Web_Actions {
       _e ('Unsupported or Disabled Action', 'Web Actions');
       exit;
     }
-    if ( !isset($data['url']) || (self::isequals($data['submit'],'Preview') ) ) {
+    $submit = self::isreturn($data['submit']);
+    if ( (!$submit)||($submit=='Preview') ) {
       if (isset($data['url']) ) { 
         $data = self::parse($data);
       }
       Web_Actions::form_header();
       Web_Actions::post_form($action, $data);
       Web_Actions::form_footer();
+      exit;
+    }
+    $content_types = array("reply", "note");
+    if ((in_array($action, $content_types))&&(empty($data['content']))) {
+      status_header(400);
+      _e ('No Content Provided', 'Web Actions');
       exit;
     }
     if ( isset($data['url']) && (filter_var($data['url'], FILTER_VALIDATE_URL) === false) ) {
@@ -179,7 +180,7 @@ class Web_Actions {
       }
     }
     $args['post_title'] =  $data['name'] ?: current_time('Gis');
-    if (self::isequals($data['submit'],'Test')) {
+    if (self::isreturn($data['submit'])=='Test') {
       header('Content-Type: text/plain; charset=' . get_option('blog_charset'));
       status_header(200);
       unset($data['html']);
@@ -193,6 +194,7 @@ class Web_Actions {
         echo $post_id->get_error_message();
         exit;
     }
+    update_post_meta($post_id, 'kind', $action);
     $cite = array();
     $cite[0] = array();
     $cite[0]['url'] = esc_url($data['url']);
@@ -225,6 +227,9 @@ class Web_Actions {
   }
   // Extract Relevant Data from a Web Page
   public static function parse($data) {
+    if ( isset($data['url']) && (filter_var($data['url'], FILTER_VALIDATE_URL) === false) ) { 
+      return $data; 
+    }
     if(!isset($data['html']) ) {
       $response = wp_remote_get($data['url']);
       if (is_wp_error($response) ) {
@@ -242,8 +247,9 @@ class Web_Actions {
     $data['site'] = $data['site'] ?: $meta['og:site'] ?: $meta['twitter:site'];
     $data['image'] = $data['image'] ?: $meta['og:image'] ?: $meta['twitter:image'];
     $data['publication'] = $data['publication'] ?: $meta['og:site_name'];
-    if(is_array($meta['article:tag'])) {
-      foreach ($meta['article:tag'] as $tag) {
+    $metatags = $meta['article:tag'] ?: $meta['og:video:tag'];
+    if(is_array($metatags)) {
+      foreach ($metatags as $tag) {
         $tags[] = str_replace(',', ' -', $tag);
       }
       $tags = array_filter($tags);
@@ -257,7 +263,7 @@ class Web_Actions {
   public static function the_content($content) { 
     $cite = get_post_meta(get_the_ID(), 'mf2_cite', true); 
     if($cite) {
-      $c = '<p>' . __('Bookmarked', 'Web Actions') . ' - ' . '<a href="' . $cite[0]['url'] . '">' . $cite[0]['name'] . '</a></p>';
+      $c = '<p>' . __('Bookmark', 'Web Actions') . ' - ' . '<a href="' . $cite[0]['url'] . '">' . $cite[0]['name'] . '</a></p>';
       $content = $c . $content;
     }
     return $content;
@@ -327,6 +333,10 @@ class Web_Actions {
 <?php
   }
   public static function post_form($action, $data=null) {
+    if (is_wp_error($data) ) {
+      echo $data->get_error_message();
+      return;
+     }
     self::preview($data);
     ?>
     <div>
@@ -390,6 +400,7 @@ class Web_Actions {
             <input type="submit" name="submit" value="Test" />
          </p>
       </form>
+    <?php // var_dump($data); ?>
     </div>
     <?php
   }

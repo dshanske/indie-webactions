@@ -2,9 +2,9 @@
 # This file is distributed under the same license as the Indie WebActions package.
 msgid ""
 msgstr ""
-"Project-Id-Version: Indie WebActions 0.1.0\n"
+"Project-Id-Version: Indie WebActions 0.2.0\n"
 "Report-Msgid-Bugs-To: http://wordpress.org/support/plugin/indie-webactions\n"
-"POT-Creation-Date: 2015-04-18 14:59:53+00:00\n"
+"POT-Creation-Date: 2015-05-07 03:56:51+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -13,55 +13,63 @@ msgstr ""
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "X-Generator: grunt-wp-i18n 0.4.9\n"
 
-#: indie-webactions.php:100
+#: indie-webactions.php:112
 msgid "User Does Not Have Permission to Publish"
 msgstr ""
 
-#: indie-webactions.php:113
-msgid "Invalid Action"
+#: indie-webactions.php:129
+msgid "Unsupported or Disabled Action"
 msgstr ""
 
-#: indie-webactions.php:124
+#: indie-webactions.php:145
+msgid "No Content Provided"
+msgstr ""
+
+#: indie-webactions.php:150
 msgid "The URL is Invalid"
 msgstr ""
 
-#: indie-webactions.php:242
-msgid "Bookmarked"
+#: indie-webactions.php:266
+msgid "Bookmark"
 msgstr ""
 
-#: indie-webactions.php:258 indie-webactions.php:265
+#: indie-webactions.php:286 indie-webactions.php:293
 msgid "Quick Post"
 msgstr ""
 
-#: indie-webactions.php:263
+#: indie-webactions.php:291
 msgid "Dashboard"
 msgstr ""
 
-#: indie-webactions.php:290
+#: indie-webactions.php:355
+msgid "Reply:"
+msgstr ""
+
+#: indie-webactions.php:362
 msgid "URL:"
 msgstr ""
 
-#: indie-webactions.php:294
+#: indie-webactions.php:366
 msgid "Name:"
 msgstr ""
 
-#: indie-webactions.php:298
+#: indie-webactions.php:370
 msgid "Author Name:"
 msgstr ""
 
-#: indie-webactions.php:302
-msgid "Publisher:"
+#: indie-webactions.php:374
+msgid "Site Name/Publication:"
 msgstr ""
 
-#: indie-webactions.php:306
-msgid "Content/Excerpt:"
+#: indie-webactions.php:378
+msgid "Excerpt:"
 msgstr ""
 
-#: indie-webactions.php:312
+#: indie-webactions.php:384
 msgid "Tags(Comma separated):"
 msgstr ""
 
-#: indie-webactions.php:316
+#: indie-webactions.php:388
 msgid "Public Post:"
 msgstr ""
 
