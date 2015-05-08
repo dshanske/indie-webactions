@@ -114,13 +114,17 @@ class Web_Actions {
     }
     $action = $wp->query_vars['indie-action'];
     if ( taxonomy_exists('kind') ) {
-      $actions = Web_Actions::kind_actions();
+      $actions = self::kind_actions();
     }
     else {
-      $actions = Web_Actions::unkind_actions();
+      $actions = self::unkind_actions();
     }
     if ($action=='config') {
-      Web_Actions::indie_config();
+      self::indie_config();
+      exit;
+    }
+    if ($action=='menu') {
+      self::indie_menu();
       exit;
     }
     if (!in_array($action, $actions)) {
@@ -260,10 +264,11 @@ class Web_Actions {
     return array_filter($data);
   }
 
+  // Basic Content Display for Bookmarks
   public static function the_content($content) { 
     $cite = get_post_meta(get_the_ID(), 'mf2_cite', true); 
     if($cite) {
-      $c = '<p>' . __('Bookmark', 'Web Actions') . ' - ' . '<a href="' . $cite[0]['url'] . '">' . $cite[0]['name'] . '</a></p>';
+      $c = '<p>' . __('Source: ', 'Web Actions') . ' - ' . '<a class=u-bookmark" href="' . $cite[0]['url'] . '">' . $cite[0]['name'] . '</a></p>';
       $content = $c . $content;
     }
     return $content;
@@ -281,6 +286,7 @@ class Web_Actions {
         <link rel="profile" href="http://microformats.org/profile/specs" />
         <link rel="profile" href="http://microformats.org/profile/hatom" />
         <link rel='stylesheet' id='indie-webaction-css'  href='<?php echo plugin_dir_url( __FILE__ ) . 'css/webaction.css'; ?>' type='text/css' media='all' />
+        <meta name="mobile-web-app-capable" content="yes">
 
         <?php do_action('indie_webaction_form_head'); ?> 
         <title><?php echo get_bloginfo('name'); ?>  - <?php _e ('Quick Post', 'Web Actions'); ?></title> 
@@ -300,6 +306,23 @@ class Web_Actions {
       </html>
     <?php
   }
+
+  public static function indie_menu() {
+    self::form_header();
+    if ( taxonomy_exists('kind') ) {
+      $actions = self::kind_actions();
+    }
+    else {
+      $actions = self::unkind_actions();
+    }
+    echo '<ul>';
+    foreach($actions as $action) {
+        echo '<li><a href="' . site_url() . '/?indie-action=' . $action . '">' . $action . '</a></li>';
+    }
+    echo '</ul>';
+    self::form_footer();
+  }
+
   public static function indie_config() {
   ?>
 <!DOCTYPE html>

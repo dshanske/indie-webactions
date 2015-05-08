@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Indie WebActions 0.2.0\n"
 "Report-Msgid-Bugs-To: http://wordpress.org/support/plugin/indie-webactions\n"
-"POT-Creation-Date: 2015-05-07 03:56:51+00:00\n"
+"POT-Creation-Date: 2015-05-08 20:17:40+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -17,59 +17,59 @@ msgstr ""
 msgid "User Does Not Have Permission to Publish"
 msgstr ""
 
-#: indie-webactions.php:129
+#: indie-webactions.php:133
 msgid "Unsupported or Disabled Action"
 msgstr ""
 
-#: indie-webactions.php:145
+#: indie-webactions.php:149
 msgid "No Content Provided"
 msgstr ""
 
-#: indie-webactions.php:150
+#: indie-webactions.php:154
 msgid "The URL is Invalid"
 msgstr ""
 
-#: indie-webactions.php:266
-msgid "Bookmark"
+#: indie-webactions.php:271
+msgid "Source: "
 msgstr ""
 
-#: indie-webactions.php:286 indie-webactions.php:293
+#: indie-webactions.php:292 indie-webactions.php:299
 msgid "Quick Post"
 msgstr ""
 
-#: indie-webactions.php:291
+#: indie-webactions.php:297
 msgid "Dashboard"
 msgstr ""
 
-#: indie-webactions.php:355
+#: indie-webactions.php:378
 msgid "Reply:"
 msgstr ""
 
-#: indie-webactions.php:362
+#: indie-webactions.php:385
 msgid "URL:"
 msgstr ""
 
-#: indie-webactions.php:366
+#: indie-webactions.php:389
 msgid "Name:"
 msgstr ""
 
-#: indie-webactions.php:370
+#: indie-webactions.php:393
 msgid "Author Name:"
 msgstr ""
 
-#: indie-webactions.php:374
+#: indie-webactions.php:397
 msgid "Site Name/Publication:"
 msgstr ""
 
-#: indie-webactions.php:378
+#: indie-webactions.php:401
 msgid "Excerpt:"
 msgstr ""
 
-#: indie-webactions.php:384
+#: indie-webactions.php:407
 msgid "Tags(Comma separated):"
 msgstr ""
 
-#: indie-webactions.php:388
+#: indie-webactions.php:411
 msgid "Public Post:"
 msgstr ""
 
