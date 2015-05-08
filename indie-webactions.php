@@ -231,7 +231,10 @@ class Web_Actions {
   }
   // Extract Relevant Data from a Web Page
   public static function parse($data) {
-    if ( isset($data['url']) && (filter_var($data['url'], FILTER_VALIDATE_URL) === false) ) { 
+    if (!isset($data['url'])) {
+      return $data;
+    }
+    elseif (filter_var($data['url'], FILTER_VALIDATE_URL) === false)  { 
       return $data; 
     }
     if(!isset($data['html']) ) {
