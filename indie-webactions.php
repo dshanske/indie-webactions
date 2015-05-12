@@ -210,6 +210,12 @@ class Web_Actions {
 					echo $attachment_id->get_error_message();
 			}
 			else {
+				$attach = array(
+						'ID' => $attachment_id,
+						'post_excerpt' => $data['excerpt'],
+						'post_title' => $data['name']
+				);
+				wp_update_post($attach);
     		set_post_thumbnail($post_id, $attachment_id);
 			}
 		}
@@ -395,8 +401,12 @@ class Web_Actions {
 					?>
             <?php _e('Upload Image:', 'Web Actions'); ?>
             <input type="file" name="photo-up" id="photo-up" /><br />
-            <?php _e('Caption:', 'Web Actions'); ?>
+            <?php _e('Title:', 'Web Actions'); ?>
             <input type="text" name="name" size="70" />
+            <p> <?php _e ('Caption:' , 'Web Actions'); ?>
+                <textarea name="excerpt" rows="3" cols="50" ></textarea>
+              </p>
+
 					<?php
 					break;
           case 'reply':
