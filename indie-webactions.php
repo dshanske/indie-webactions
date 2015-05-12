@@ -20,6 +20,11 @@ register_activation_hook(__FILE__, 'indie_webactions_activation');
 // OpenGraph
 require_once( plugin_dir_path( __FILE__ ) . 'Parser.php');
 
+// Media Upload
+require_once(ABSPATH . 'wp-admin/includes/media.php');
+require_once(ABSPATH . 'wp-admin/includes/file.php');
+require_once(ABSPATH . 'wp-admin/includes/image.php');
+
 add_action('init', array('Web_Actions', 'init'), 12);
 
 
@@ -88,7 +93,7 @@ class Web_Actions {
     return $vars;
   }
   public static function kind_actions() {
-    $actions = array('like', 'favorite', 'bookmark', 'repost', 'note', 'reply');
+    $actions = array('like', 'favorite', 'bookmark', 'repost', 'note', 'reply', 'photo');
     return apply_filters('supported_webactions', $actions);
   }
  public static function unkind_actions() {
@@ -189,6 +194,7 @@ class Web_Actions {
       status_header(200);
       unset($data['html']);
       var_dump($data);
+			var_dump($_FILES);
       exit;
     }
     $args = apply_filters('pre_web_action', $args);
@@ -198,6 +204,15 @@ class Web_Actions {
         echo $post_id->get_error_message();
         exit;
     }
+		if ($action=='photo') {
+			$attachment_id = media_handle_upload( 'photo-up', $post_id );
+			if ( is_wp_error( $attachment_id ) ) {
+					echo $attachment_id->get_error_message();
+			}
+			else {
+    		set_post_thumbnail($post_id, $attachment_id);
+			}
+		}
     update_post_meta($post_id, 'kind', $action);
     $cite = array();
     $cite[0] = array();
@@ -366,7 +381,7 @@ class Web_Actions {
     self::preview($data);
     ?>
     <div>
-      <form action="<?php echo site_url();?>/?indie-action=<?php echo $action;?>" method="post">
+      <form action="<?php echo site_url();?>/?indie-action=<?php echo $action;?>" method="post" enctype="multipart/form-data">
       <?php
         switch ($action) {
           case 'note':
@@ -376,6 +391,14 @@ class Web_Actions {
               </p>
             <?php
             break;
+					case 'photo':
+					?>
+            <?php _e('Upload Image:', 'Web Actions'); ?>
+            <input type="file" name="photo-up" id="photo-up" /><br />
+            <?php _e('Caption:', 'Web Actions'); ?>
+            <input type="text" name="name" size="70" />
+					<?php
+					break;
           case 'reply':
           ?>
                 <p> <?php _e ('Reply:' , 'Web Actions'); ?>
